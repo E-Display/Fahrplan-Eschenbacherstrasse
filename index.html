@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+
+<html lang="de">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+<title>Abfahrtstafel</title>
+
+<style>
+
+  /* ==========================================================================
+
+     Abfahrtstafel Widget
+
+     Kompatibilitaet: Chrome 86+, Tizen 6.5+ (Samsung Signage), aufwaertskompatibel
+
+     - Kein CSS Grid, kein flex "gap", kein clamp()
+
+     - Kein optional chaining, kein fetch() -> XMLHttpRequest
+
+     ========================================================================== */
+
+
+
+  html, body {
+
+    margin: 0;
+
+    padding: 0;
+
+    width: 100%;
+
+    height: 100%;
+
+    overflow: hidden;
+
+    background: #0b5f7a;
+
+    font-family: "Arial", "Helvetica Neue", Helvetica, sans-serif;
+
+    -webkit-font-smoothing: antialiased;
+
+  }
+
+
+
+  * { box-sizing: border-box; }
+
+
+
+  #board {
+
+    width: 100%;
+
+    height: 100%;
+
+    display: -webkit-box;
+
+    display: -webkit-flex;
+
+    display: flex;
+
+    -webkit-box-orient: vertical;
+
+    -webkit-flex-direction: column;
+
+    flex-direction: column;
+
+    color: #ffffff;
+
+  }
+
+
+
+  /* ---------- Header ---------- */
+
+  #board-header {
+
+    display: -webkit-box;
+
+    display: -webkit-flex;
+
+    display: flex;
+
+    -webkit-box-align: center;
+
+    -webkit-align-items: center;
+
+    align-items: center;
+
+    background: #0a5872;
+
+    padding: calc(1.1vh * var(--scale, 1)) calc(1.6vh * var(--scale, 1));
+
+    -webkit-box-flex: 0;
+
+    -webkit-flex: 0 0 auto;
+
+    flex: 0 0 auto;
+
+    border-bottom: 2px solid rgba(255,255,255,0.08);
+
+  }
+
+
+
+  #clock-wrap {
+
+    width: calc(7.5vh * var(--scale, 1));
+
+    height: calc(7.5vh * var(--scale, 1));
+
+    margin-right: calc(1.6vh * var(--scale, 1));
+
+    -webkit-box-flex: 0;
+
+    -webkit-flex: 0 0 auto;
+
+    flex: 0 0 auto;
+
+  }
+
+
+
+  #clock-wrap svg { width: 100%; height: 100%; display: block; }
+
+
+
+  #station-name {
+
+    margin: 0;
+
+    font-size: calc(4.4vh * var(--scale, 1));
+
+    font-weight: 700;
+
+    letter-spacing: 0.5px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+  }
+
+
+
+  /* ---------- Column headers ---------- */
+
+  #col-headers {
+
+    display: -webkit-box;
+
+    display: -webkit-flex;
+
+    display: flex;
+
+    -webkit-box-align: center;
+
+    -webkit-align-items: center;
+
+    align-items: center;
+
+    background: #0b6480;
+
+    padding: calc(1.0vh * var(--scale, 1)) calc(1.6vh * var(--scale, 1));
+
+    font-size: calc(1.9vh * var(--scale, 1));
+
+    font-weight: 700;
+
+    text-transform: none;
+
+    -webkit-box-flex: 0;
+
+    -webkit-flex: 0 0 auto;
+
+    flex: 0 0 auto;
+
+  }
+
+
+
+  .col-linie   { width: 15%; -webkit-box-flex: 0; -webkit-flex: 0 0 15%; flex: 0 0 15%; }
+
+  .col-abfahrt { width: 12%; -webkit-box-flex: 0; -webkit-flex: 0 0 12%; flex: 0 0 12%; }
+
+  .col-gleis   { width: 10%; -webkit-box-flex: 0; -webkit-flex: 0 0 10%; flex: 0 0 10%; }
+
+  .col-ziel    { -webkit-box-flex: 1; -webkit-flex: 1 1 auto; flex: 1 1 auto; }
+
+  .col-hinweis { width: 14%; text-align: right; -webkit-box-flex: 0; -webkit-flex: 0 0 14%; flex: 0 0 14%; }
+
+
+
+  /* ---------- Rows ---------- */
+
+  #rows {
+
+    -webkit-box-flex: 1;
+
+    -webkit-flex: 1 1 auto;
+
+    flex: 1 1 auto;
+
+    display: -webkit-box;
+
+    display: -webkit-flex;
+
+    display: flex;
+
+    -webkit-box-orient: vertical;
+
+    -webkit-flex-direction: column;
+
+    flex-direction: column;
+
+    overflow: hidden;
+
+  }
+
+
+
+  .row {
+
+    -webkit-box-flex: 1;
+
+    -webkit-flex: 1 1 0%;
+
+    flex: 1 1 0%;
+
+    display: -webkit-box;
+
+    display: -webkit-flex;
+
+    display: flex;
+
+    -webkit-box-align: center;
+
+    -webkit-align-items: center;
+
+    align-items: center;
+
+    padding: 0 calc(1.6vh * var(--scale, 1));
+
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+
+    min-height: 0;
+
+  }
+
+
+
+  .row-a { background: #0e7396; }
+
+  .row-b { background: #0a5872; }
+
+
+
+  .cell-linie {
+
+    width: 15%;
+
+    -webkit-box-flex: 0;
+
+    -webkit-flex: 0 0 15%;
+
+    flex: 0 0 15%;
+
+    display: -webkit-box;
+
+    display: -webkit-flex;
+
+    display: flex;
+
+    -webkit-box-align: center;
+
+    -webkit-align-items: center;
+
+    align-items: center;
+
+    min-width: 0;
+
+  }
+
+
+
+  .icon {
+
+    width: calc(2.6vh * var(--scale, 1));
+
+    height: calc(2.6vh * var(--scale, 1));
+
+    margin-right: calc(0.8vh * var(--scale, 1));
+
+    -webkit-box-flex: 0;
+
+    -webkit-flex: 0 0 auto;
+
+    flex: 0 0 auto;
+
+    fill: #ffffff;
+
+    opacity: 0.9;
+
+  }
+
+
+
+  .badge {
+
+    display: inline-block;
+
+    background: #ffffff;
+
+    color: #0a5872;
+
+    font-weight: 800;
+
+    font-size: calc(2.1vh * var(--scale, 1));
+
+    padding: calc(0.35vh * var(--scale, 1)) calc(0.9vh * var(--scale, 1));
+
+    border-radius: calc(0.4vh * var(--scale, 1));
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    max-width: 100%;
+
+    vertical-align: middle;
+
+  }
+
+
+
+  .cell-abfahrt {
+
+    width: 12%;
+
+    -webkit-box-flex: 0;
+
+    -webkit-flex: 0 0 12%;
+
+    flex: 0 0 12%;
+
+    font-size: calc(2.4vh * var(--scale, 1));
+
+    font-weight: 600;
+
+    white-space: nowrap;
+
+  }
+
+
+
+  .cell-gleis {
+
+    width: 10%;
+
+    -webkit-box-flex: 0;
+
+    -webkit-flex: 0 0 10%;
+
+    flex: 0 0 10%;
+
+    font-size: calc(2.0vh * var(--scale, 1));
+
+    font-weight: 600;
+
+    opacity: 0.85;
+
+    white-space: nowrap;
+
+  }
+
+
+
+  .cell-ziel {
+
+    -webkit-box-flex: 1;
+
+    -webkit-flex: 1 1 auto;
+
+    flex: 1 1 auto;
+
+    font-size: calc(2.4vh * var(--scale, 1));
+
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    padding-right: calc(1vh * var(--scale, 1));
+
+  }
+
+
+
+  .cell-hinweis {
+
+    width: 16%;
+
+    -webkit-box-flex: 0;
+
+    -webkit-flex: 0 0 16%;
+
+    flex: 0 0 16%;
+
+    text-align: right;
+
+    font-size: calc(2.0vh * var(--scale, 1));
+
+    font-weight: 700;
+
+    white-space: nowrap;
+
+  }
+
+
+
+  .delay { color: #ffb84d; }
+
+  .cancelled { color: #ff6b6b; text-decoration: line-through; }
+
+  .cancelled-tag { color: #ff6b6b; }
+
+
+
+  /* ---------- Status / footer ---------- */
+
+  #status-bar {
+
+    position: absolute;
+
+    right: calc(1vh * var(--scale, 1));
+
+    bottom: calc(0.6vh * var(--scale, 1));
+
+    font-size: calc(1.3vh * var(--scale, 1));
+
+    color: rgba(255,255,255,0.45);
+
+  }
+
+
+
+  #status-bar.error { color: #ff6b6b; }
+
+
+
+  #empty-msg {
+
+    -webkit-box-flex: 1;
+
+    -webkit-flex: 1 1 auto;
+
+    flex: 1 1 auto;
+
+    display: -webkit-box;
+
+    display: -webkit-flex;
+
+    display: flex;
+
+    -webkit-box-align: center;
+
+    -webkit-align-items: center;
+
+    align-items: center;
+
+    -webkit-box-pack: center;
+
+    -webkit-justify-content: center;
+
+    justify-content: center;
+
+    font-size: calc(2.4vh * var(--scale, 1));
+
+    opacity: 0.7;
+
+    text-align: center;
+
+    padding: 2vh;
+
+  }
+
+</style>
+
+</head>
+
+<body>
+
+  <div id="board">
+
+    <header id="board-header">
+
+      <div id="clock-wrap">
+
+        <svg viewBox="0 0 100 100">
+
+          <circle cx="50" cy="50" r="47" fill="#ffffff" stroke="#0a5872" stroke-width="2"></circle>
+
+          <g id="clock-ticks"></g>
+
+          <line id="hand-hour" x1="50" y1="50" x2="50" y2="28" stroke="#0a5872" stroke-width="5" stroke-linecap="round"></line>
+
+          <line id="hand-min" x1="50" y1="50" x2="50" y2="16" stroke="#0a5872" stroke-width="3.5" stroke-linecap="round"></line>
+
+          <line id="hand-sec" x1="50" y1="58" x2="50" y2="12" stroke="#e2001a" stroke-width="1.5" stroke-linecap="round"></line>
+
+          <circle cx="50" cy="50" r="3" fill="#e2001a"></circle>
+
+        </svg>
+
+      </div>
+
+      <h1 id="station-name">&nbsp;</h1>
+
+    </header>
+
+
+
+    <div id="col-headers">
+
+      <div class="col-linie">Linie</div>
+
+      <div class="col-abfahrt">Abfahrt</div>
+
+      <div class="col-gleis">Gleis</div>
+
+      <div class="col-ziel">Richtung / Ziel</div>
+
+      <div class="col-hinweis">Hinweis</div>
+
+    </div>
+
+
+
+    <div id="rows"></div>
+
+  </div>
+
+
+
+  <div id="status-bar"></div>
+
+
+
+<script>
+
+(function () {
+
+  "use strict";
+
+
+
+  /* ---------------------------------------------------------------------
+
+     1. Query-Parameter lesen (ohne URLSearchParams, fuer maximale Kompatibilitaet)
+
+     --------------------------------------------------------------------- */
+
+  function getParams() {
+
+    var params = {};
+
+    var qs = window.location.search.substring(1);
+
+    if (!qs) { return params; }
+
+    var pairs = qs.split("&");
+
+    for (var i = 0; i < pairs.length; i++) {
+
+      var pair = pairs[i].split("=");
+
+      var key = decodeURIComponent(pair[0] || "");
+
+      var val = pair.length > 1 ? decodeURIComponent(pair[1].replace(/\+/g, " ")) : "";
+
+      if (key) { params[key] = val; }
+
+    }
+
+    return params;
+
+  }
+
+
+
+  var qp = getParams();
+
+
+
+  var CONFIG = {
+
+    station:   qp.station || "Sargans",                 // Stationsname, z.B. "Sargans"
+
+    id:        qp.id || "",                       // exakte Haltestellen-ID (bevorzugt, falls bekannt)
+
+    limit:     parseInt(qp.limit, 10) || 5,        // Anzahl Verbindungen
+
+    title:     qp.title || "",                     // Titel ueberschreiben statt API-Stationsname
+
+    refresh:   Math.max(parseInt(qp.refresh, 10) || 30, 10), // Sekunden zwischen Abfragen, min. 10
+
+    clock:     qp.clock !== "0",                   // Uhr anzeigen, default an
+
+    scale:     parseFloat(qp.fontscale) || 2.0,       // Skalierungsfaktor Schrift/Elemente
+
+    platform:  qp.platform !== "0",                  // Gleis/Perron anzeigen (Spalte), default an
+
+    types:     qp.types || ""                       // z.B. "train,bus,tram,ship,cableway"
+
+  };
+
+
+
+  if (!CONFIG.station && !CONFIG.id) {
+
+    document.getElementById("station-name").textContent = "Kein Bahnhof konfiguriert";
+
+    document.getElementById("rows").innerHTML = "";
+
+    var emptyDiv = document.createElement("div");
+
+    emptyDiv.id = "empty-msg";
+
+    emptyDiv.textContent = "Bitte URL-Parameter ?station=Ortsname anhaengen, z.B. ?station=Sargans&limit=6";
+
+    document.getElementById("rows").appendChild(emptyDiv);
+
+    return;
+
+  }
+
+
+
+  document.documentElement.style.setProperty("--scale", String(CONFIG.scale));
+
+
+
+  if (CONFIG.title) {
+
+    document.getElementById("station-name").textContent = CONFIG.title;
+
+  }
+
+
+
+  /* ---------------------------------------------------------------------
+
+     2. Analoge Uhr
+
+     --------------------------------------------------------------------- */
+
+  if (!CONFIG.clock) {
+
+    document.getElementById("clock-wrap").style.display = "none";
+
+  } else {
+
+    var ticksGroup = document.getElementById("clock-ticks");
+
+    for (var t = 0; t < 12; t++) {
+
+      var angle = (t * 30) * Math.PI / 180;
+
+      var x1 = 50 + 40 * Math.sin(angle);
+
+      var y1 = 50 - 40 * Math.cos(angle);
+
+      var x2 = 50 + 45 * Math.sin(angle);
+
+      var y2 = 50 - 45 * Math.cos(angle);
+
+      var tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+
+      tick.setAttribute("x1", x1);
+
+      tick.setAttribute("y1", y1);
+
+      tick.setAttribute("x2", x2);
+
+      tick.setAttribute("y2", y2);
+
+      tick.setAttribute("stroke", "#0a5872");
+
+      tick.setAttribute("stroke-width", "2");
+
+      ticksGroup.appendChild(tick);
+
+    }
+
+
+
+    var handHour = document.getElementById("hand-hour");
+
+    var handMin = document.getElementById("hand-min");
+
+    var handSec = document.getElementById("hand-sec");
+
+
+
+    function tickClock() {
+
+      var now = new Date();
+
+      var h = now.getHours() % 12;
+
+      var m = now.getMinutes();
+
+      var s = now.getSeconds();
+
+      var hourDeg = (h * 30) + (m * 0.5);
+
+      var minDeg = (m * 6) + (s * 0.1);
+
+      var secDeg = s * 6;
+
+      handHour.setAttribute("transform", "rotate(" + hourDeg + " 50 50)");
+
+      handMin.setAttribute("transform", "rotate(" + minDeg + " 50 50)");
+
+      handSec.setAttribute("transform", "rotate(" + secDeg + " 50 50)");
+
+    }
+
+    tickClock();
+
+    setInterval(tickClock, 1000);
+
+  }
+
+
+
+  /* ---------------------------------------------------------------------
+
+     3. Icons pro Verkehrsmittel
+
+     --------------------------------------------------------------------- */
+
+  var ICONS = {
+
+    train: '<path d="M7 2C4.24 2 2 3 2 6.5V16c0 1.657 1.343 3 3 3l-1.5 1.5v.5h3l1-1h5l1 1h3v-.5L15 19c1.657 0 3-1.343 3-3V6.5C18 3 16 2 12 2H7zM4.5 7h13v6h-13V7zM6.5 15a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm7 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"></path>',
+
+    bus:   '<path d="M4 5a2 2 0 012-2h8a2 2 0 012 2v11a1 1 0 01-1 1h-1a1 1 0 01-2 0H8a1 1 0 01-2 0H5a1 1 0 01-1-1V5zm2 1v5h10V6H6zm0 7.5a1 1 0 100 2 1 1 0 000-2zm10 0a1 1 0 100 2 1 1 0 000-2z"></path>',
+
+    tram:  '<path d="M6 2h10l2 3v10a2 2 0 01-2 2l1 2H5l1-2a2 2 0 01-2-2V5l2-3zm-1 6v5h12V8H5zm2 7a1 1 0 100 2 1 1 0 000-2zm8 0a1 1 0 100 2 1 1 0 000-2zM8 3l-1 2h10l-1-2H8z"></path>',
+
+    ship:  '<path d="M4 11l1-6h10l1 6h1l-2 8-3-1-3 1-3-1-3 1-2-8h3zm2-4l-.6 4h9.2L14 7H6zm-1 9.7l1 .3 3-1 3 1 3-1 1-.3.9-3.7H4.1L5 16.7z"></path>',
+
+    cableway: '<path d="M3 5l18-2v2L3 7V5zm2 4h3v9H5V9zm11 0h3v9h-3V9zm-6 1h4v8H9v-8z"></path>',
+
+    default: '<path d="M7 2C4.24 2 2 3 2 6.5V16c0 1.657 1.343 3 3 3l-1.5 1.5v.5h3l1-1h5l1 1h3v-.5L15 19c1.657 0 3-1.343 3-3V6.5C18 3 16 2 12 2H7zM4.5 7h13v6h-13V7zM6.5 15a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm7 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"></path>'
+
+  };
+
+
+
+  function iconKeyForCategory(cat) {
+
+    if (!cat) { return "default"; }
+
+    cat = String(cat).toUpperCase();
+
+    if (cat === "B" || cat === "BUS" || cat === "NFB") { return "bus"; }
+
+    if (cat === "T" || cat === "TRAM" || cat === "STB") { return "tram"; }
+
+    if (cat === "BAT" || cat === "SHIP" || cat === "FAE") { return "ship"; }
+
+    if (cat === "PB" || cat === "GB" || cat === "FUN") { return "cableway"; }
+
+    return "train";
+
+  }
+
+
+
+  function makeIcon(cat) {
+
+    var key = iconKeyForCategory(cat);
+
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+
+    svg.setAttribute("class", "icon");
+
+    svg.setAttribute("viewBox", "0 0 20 22");
+
+    svg.innerHTML = ICONS[key] || ICONS.default;
+
+    return svg;
+
+  }
+
+
+
+  /* ---------------------------------------------------------------------
+
+     4. Zeitformatierung
+
+     --------------------------------------------------------------------- */
+
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+
+
+  function formatTime(isoString) {
+
+    if (!isoString) { return "--:--"; }
+
+    var d = new Date(isoString);
+
+    if (isNaN(d.getTime())) { return "--:--"; }
+
+    return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+
+  }
+
+
+
+  function delayMinutes(planned, prognosis) {
+
+    if (!planned || !prognosis) { return 0; }
+
+    var p1 = new Date(planned).getTime();
+
+    var p2 = new Date(prognosis).getTime();
+
+    if (isNaN(p1) || isNaN(p2)) { return 0; }
+
+    var diff = Math.round((p2 - p1) / 60000);
+
+    return diff > 0 ? diff : 0;
+
+  }
+
+
+
+  /* ---------------------------------------------------------------------
+
+     5. Rendering
+
+     --------------------------------------------------------------------- */
+
+  var rowsContainer = document.getElementById("rows");
+
+  var statusBar = document.getElementById("status-bar");
+
+  var stationNameEl = document.getElementById("station-name");
+
+
+
+  function setStatus(text, isError) {
+
+    statusBar.textContent = text;
+
+    statusBar.className = isError ? "error" : "";
+
+  }
+
+
+
+  function render(entries) {
+
+    rowsContainer.innerHTML = "";
+
+
+
+    if (!entries || entries.length === 0) {
+
+      var emptyDiv = document.createElement("div");
+
+      emptyDiv.id = "empty-msg";
+
+      emptyDiv.textContent = "Keine Verbindungen gefunden.";
+
+      rowsContainer.appendChild(emptyDiv);
+
+      return;
+
+    }
+
+
+
+    for (var i = 0; i < entries.length; i++) {
+
+      var e = entries[i];
+
+      var stop = e.stop || {};
+
+      var planned = stop.departure;
+
+      var prognosis = (stop.prognosis && stop.prognosis.departure) ? stop.prognosis.departure : null;
+
+      var cancelled = !planned && !prognosis;
+
+
+
+      var row = document.createElement("div");
+
+      row.className = "row " + (i % 2 === 0 ? "row-a" : "row-b");
+
+
+
+      // Linie
+
+      var cellLinie = document.createElement("div");
+
+      cellLinie.className = "cell-linie";
+
+      cellLinie.appendChild(makeIcon(e.category));
+
+      var badge = document.createElement("span");
+
+      badge.className = "badge";
+
+      // Kurze Liniennummern (z.B. "IR13", "S12") komplett anzeigen; lange Zugnummern
+
+      // (z.B. internationale ICE/EC-Nummern wie "ICE 279") wuerden die Badge sprengen,
+
+      // daher dort nur die Kategorie zeigen, wie auf realen Anzeigetafeln ueblich.
+
+      var num = e.number || "";
+
+      var lineLabel;
+
+      if (num && num.length <= 3) {
+
+        lineLabel = (e.category || "") + num;
+
+      } else {
+
+        lineLabel = e.category || num || "";
+
+      }
+
+      if (!lineLabel && e.name) { lineLabel = String(e.name).replace(/\s+/g, "").substring(0, 6); }
+
+      badge.textContent = lineLabel || "?";
+
+      cellLinie.appendChild(badge);
+
+      row.appendChild(cellLinie);
+
+
+
+      // Abfahrt
+
+      var cellAbfahrt = document.createElement("div");
+
+      cellAbfahrt.className = "cell-abfahrt";
+
+      cellAbfahrt.textContent = cancelled ? "--:--" : formatTime(planned);
+
+      row.appendChild(cellAbfahrt);
+
+
+
+      // Gleis
+
+      var cellGleis = document.createElement("div");
+
+      cellGleis.className = "cell-gleis";
+
+      if (CONFIG.platform && stop.platform) {
+
+        cellGleis.textContent = stop.platform;
+
+      } else {
+
+        cellGleis.textContent = "";
+
+      }
+
+      row.appendChild(cellGleis);
+
+
+
+      // Ziel
+
+      var cellZiel = document.createElement("div");
+
+      cellZiel.className = "cell-ziel";
+
+      cellZiel.appendChild(document.createTextNode(e.to || ""));
+
+      if (cancelled) { cellZiel.className += " cancelled"; }
+
+      row.appendChild(cellZiel);
+
+
+
+      // Hinweis
+
+      var cellHinweis = document.createElement("div");
+
+      cellHinweis.className = "cell-hinweis";
+
+      if (cancelled) {
+
+        cellHinweis.className += " cancelled-tag";
+
+        cellHinweis.textContent = "Ausfall";
+
+      } else {
+
+        var delay = delayMinutes(planned, prognosis);
+
+        if (delay > 0) {
+
+          cellHinweis.className += " delay";
+
+          cellHinweis.textContent = "+" + delay + "'";
+
+        } else {
+
+          cellHinweis.textContent = "";
+
+        }
+
+      }
+
+      row.appendChild(cellHinweis);
+
+
+
+      rowsContainer.appendChild(row);
+
+    }
+
+  }
+
+
+
+  /* ---------------------------------------------------------------------
+
+     6. Datenabruf (XMLHttpRequest statt fetch fuer max. Kompatibilitaet)
+
+     --------------------------------------------------------------------- */
+
+  var API_BASE = "https://transport.opendata.ch/v1/stationboard";
+
+  var consecutiveErrors = 0;
+
+
+
+  function buildUrl() {
+
+    var url = API_BASE + "?limit=" + encodeURIComponent(CONFIG.limit);
+
+    if (CONFIG.id) {
+
+      url += "&id=" + encodeURIComponent(CONFIG.id);
+
+    } else {
+
+      url += "&station=" + encodeURIComponent(CONFIG.station);
+
+    }
+
+    if (CONFIG.types) {
+
+      var typesList = CONFIG.types.split(",");
+
+      for (var i = 0; i < typesList.length; i++) {
+
+        var tt = typesList[i].replace(/^\s+|\s+$/g, "");
+
+        if (tt) { url += "&transportations[]=" + encodeURIComponent(tt); }
+
+      }
+
+    }
+
+    return url;
+
+  }
+
+
+
+  function loadData() {
+
+    var xhr = new XMLHttpRequest();
+
+    xhr.open("GET", buildUrl(), true);
+
+    xhr.timeout = 15000;
+
+
+
+    xhr.onreadystatechange = function () {
+
+      if (xhr.readyState !== 4) { return; }
+
+
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+
+        var data;
+
+        try {
+
+          data = JSON.parse(xhr.responseText);
+
+        } catch (parseErr) {
+
+          handleError("Antwort konnte nicht gelesen werden");
+
+          return;
+
+        }
+
+
+
+        if (!CONFIG.title) {
+
+          var firstEntry = (data.stationboard && data.stationboard[0]) || null;
+
+          var nameFromApi = firstEntry && firstEntry.stop && firstEntry.stop.station
+
+            ? firstEntry.stop.station.name
+
+            : (data.station ? data.station.name : CONFIG.station || CONFIG.id);
+
+          if (nameFromApi) { stationNameEl.textContent = nameFromApi; }
+
+          else if (CONFIG.station) { stationNameEl.textContent = CONFIG.station; }
+
+        }
+
+
+
+        render(data.stationboard || []);
+
+        consecutiveErrors = 0;
+
+        var now = new Date();
+
+        setStatus("Aktualisiert " + pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds()), false);
+
+      } else {
+
+        handleError("Fehler beim Laden (HTTP " + xhr.status + ")");
+
+      }
+
+    };
+
+
+
+    xhr.ontimeout = function () { handleError("Zeitueberschreitung bei der Abfrage"); };
+
+    xhr.onerror = function () { handleError("Verbindungsfehler"); };
+
+
+
+    xhr.send();
+
+  }
+
+
+
+  function handleError(msg) {
+
+    consecutiveErrors++;
+
+    setStatus(msg + " - naechster Versuch in " + CONFIG.refresh + "s", true);
+
+    // Bestehende Tafel bleibt sichtbar (kein Leeren bei kurzzeitigen Netzwerkfehlern),
+
+    // nur wenn seit Start noch nie Daten geladen wurden, zeigen wir eine Meldung.
+
+    if (rowsContainer.children.length === 0) {
+
+      render(null);
+
+    }
+
+  }
+
+
+
+  loadData();
+
+  setInterval(loadData, CONFIG.refresh * 1000);
+
+
+
+})();
+
+</script>
+
+</body>
+
+</html>
+
